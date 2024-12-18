@@ -6,11 +6,16 @@ Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) sim
 
 ```
 .
-├── server
+├── server/
 │   └── index.ts       # Código do servidor Express
-└── web
+└── web/
     └── index.html     # Front-end HTML para visualizar as mensagens SSE
 ```
+
+### Explicação da Estrutura de Pastas:
+
+- **`server/index.ts`**: Arquivo principal do servidor Express que configura as rotas para comunicação SSE e permite enviar mensagens para os clientes.
+- **`web/index.html`**: Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real.
 
 ## Tecnologias
 
@@ -26,39 +31,27 @@ Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) sim
 Primeiro, clone o repositório para sua máquina local:
 
 ```bash
-git clone <url>
+git clone https://github.com/4lessandrodev/event-source.poc.git
 cd event-source.poc
 ```
 
-### 2. Instalar Dependências
+### 2. Construir a Imagem Docker
 
-Dentro da pasta do projeto, instale as dependências do servidor com o Yarn (ou npm):
-
-```bash
-yarn install
-```
-
-Ou, se estiver usando o npm:
+Para construir a imagem Docker com o nome `meu-projeto` e a tag `v1.0`, use o seguinte comando:
 
 ```bash
-npm install
+docker build -t event-source-poc:v1.0 .
 ```
 
-### 3. Executar o Servidor
+### 3. Executar o Container Docker
 
-Com as dependências instaladas, você pode iniciar o servidor:
+Após construir a imagem, você pode rodar o container na porta desejada. Para mapear a porta `3000` do container para a porta `5000` na sua máquina local, use o comando:
 
 ```bash
-yarn start
+docker run -p 3000:3000 event-source-poc:v1.0
 ```
 
-Ou, se estiver usando o npm:
-
-```bash
-npm start
-```
-
-O servidor estará rodando na porta `3000` por padrão.
+Isso fará com que a aplicação seja acessível em `http://localhost:3000`.
 
 ### 4. Acessar a Interface Web
 
@@ -142,5 +135,4 @@ Status: maintenance
 ## Licença
 
 Este projeto está licenciado sob a MIT License - consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
-
 ```
