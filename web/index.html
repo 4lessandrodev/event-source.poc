@@ -45,7 +45,7 @@
     <script>
         const mensagens = document.getElementById('mensagens');
         const elementsList = document.getElementById('elements');
-        const id = window.crypto.randomUUID();
+        const id = String(Math.trunc(Math.random() * 100));
         // Cria uma conexão SSE com o endpoint fornecido
         const eventSource = new EventSource(`http://localhost:3000/stream/${id}`);
 
