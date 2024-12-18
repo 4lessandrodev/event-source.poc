@@ -6,7 +6,7 @@ Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) sim
 
 ```
 .
-├── src
+├── server
 │   └── index.ts       # Código do servidor Express
 └── web
     └── index.html     # Front-end HTML para visualizar as mensagens SSE
