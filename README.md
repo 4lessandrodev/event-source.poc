@@ -6,16 +6,15 @@ Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) sim
 
 ```
 .
-├── server/
-│   └── index.ts       # Código do servidor Express
-└── web/
-    └── index.html     # Front-end HTML para visualizar as mensagens SSE
+└─── server/
+  │── index.ts    # Código do servidor Express que serve o arquivo HTML e configura as rotas SSE
+  └── index.html  # Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real
 ```
 
 ### Explicação da Estrutura de Pastas:
 
-- **`server/index.ts`**: Arquivo principal do servidor Express que configura as rotas para comunicação SSE e permite enviar mensagens para os clientes.
-- **`web/index.html`**: Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real.
+- **`server/index.ts`**: Arquivo principal do servidor Express que configura as rotas para comunicação SSE e envia o arquivo `index.html` quando a raiz do servidor é acessada.
+- **`index.html`**: Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real.
 
 ## Tecnologias
 
@@ -37,7 +36,7 @@ cd event-source.poc
 
 ### 2. Construir a Imagem Docker
 
-Para construir a imagem Docker com o nome `meu-projeto` e a tag `v1.0`, use o seguinte comando:
+Para construir a imagem Docker com o nome `event-source-poc` e a tag `v1.0`, use o seguinte comando:
 
 ```bash
 docker build -t event-source-poc:v1.0 .
@@ -45,7 +44,7 @@ docker build -t event-source-poc:v1.0 .
 
 ### 3. Executar o Container Docker
 
-Após construir a imagem, você pode rodar o container na porta desejada. Para mapear a porta `3000` do container para a porta `5000` na sua máquina local, use o comando:
+Após construir a imagem, você pode rodar o container na porta desejada. Para mapear a porta `3000` do container para a porta `3000` na sua máquina local, use o comando:
 
 ```bash
 docker run -p 3000:3000 event-source-poc:v1.0
@@ -55,11 +54,19 @@ Isso fará com que a aplicação seja acessível em `http://localhost:3000`.
 
 ### 4. Acessar a Interface Web
 
-Abra o arquivo `web/index.html` no seu navegador. Ele irá se conectar automaticamente ao servidor SSE e começar a exibir as mensagens enviadas pelo servidor.
+Agora, abra o navegador e vá para `http://localhost:3000`. O servidor Express irá enviar o arquivo `index.html` que está sendo servido pelo seu servidor.
 
 ## Rotas do Servidor
 
-### 1. `/stream/:id`
+### 1. `/`
+
+- **Método**: `GET`
+- **Descrição**: Esta rota serve o arquivo `index.html` para o cliente.
+- **Exemplo**: `http://localhost:3000/`
+  
+  Quando o cliente acessar a raiz do servidor, o arquivo `index.html` será enviado e carregado na interface do usuário.
+
+### 2. `/stream/:id`
 
 - **Método**: `GET`
 - **Descrição**: Esta rota estabelece uma conexão SSE para o cliente com o `id` fornecido na URL. O servidor envia eventos em tempo real para este cliente.
@@ -67,7 +74,7 @@ Abra o arquivo `web/index.html` no seu navegador. Ele irá se conectar automatic
   
   O cliente precisa passar um `id` exclusivo, que será usado para identificar a conexão. Esse `id` pode ser gerado no front-end utilizando a função `crypto.randomUUID()`.
 
-### 2. `/clients`
+### 3. `/clients`
 
 - **Método**: `GET`
 - **Descrição**: Retorna uma lista de todos os `clientId` de clientes conectados.
@@ -75,7 +82,7 @@ Abra o arquivo `web/index.html` no seu navegador. Ele irá se conectar automatic
   
   Essa rota permite verificar quais clientes estão conectados no servidor.
 
-### 3. `/publish/:clientId/status/:status`
+### 4. `/publish/:clientId/status/:status`
 
 - **Método**: `GET`
 - **Descrição**: Envia um evento para um cliente específico, identificado pelo `clientId`, com o `status` fornecido.
@@ -83,7 +90,7 @@ Abra o arquivo `web/index.html` no seu navegador. Ele irá se conectar automatic
 
   Esta rota permite enviar uma mensagem personalizada para um cliente específico. O `status` pode ser qualquer valor que você queira que o cliente receba (por exemplo, `active`, `inactive`, etc.).
 
-### 4. `/publish/status/:status`
+### 5. `/publish/status/:status`
 
 - **Método**: `GET`
 - **Descrição**: Envia um evento com o `status` para **todos os clientes** conectados.
@@ -113,10 +120,11 @@ curl http://localhost:3000/publish/status/maintenance
 
 - **Conexões SSE**: O servidor mantém uma conexão persistente com cada cliente conectado. Ele envia dados de forma contínua para os clientes por meio da rota `/stream/:id`.
 - **Publicação de Status**: A rota `/publish/:clientId/status/:status` permite enviar um evento específico para um cliente, enquanto a rota `/publish/status/:status` envia um evento para todos os clientes conectados.
+- **Envio de `index.html`**: A rota `/` envia o arquivo `index.html` como resposta para o cliente, que se conecta ao servidor SSE.
 
 ### Front-end:
 
-- O **front-end** em `web/index.html` usa a API `EventSource` para se conectar ao servidor e exibir as mensagens recebidas em tempo real. As mensagens são exibidas em uma lista `<ul>`, e a rolagem automática para o final da lista é feita conforme novas mensagens são recebidas.
+- O **front-end** em `index.html` usa a API `EventSource` para se conectar ao servidor e exibir as mensagens recebidas em tempo real. As mensagens são exibidas em uma lista `<ul>`, e a rolagem automática para o final da lista é feita conforme novas mensagens são recebidas.
 
 ## Exemplo de Mensagens no Front-End
 
@@ -135,4 +143,3 @@ Status: maintenance
 ## Licença
 
 Este projeto está licenciado sob a MIT License - consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
-```
