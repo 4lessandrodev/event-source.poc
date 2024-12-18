@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",          // ou "module": "ES6"
+    "moduleResolution": "node",  // Para que o TypeScript resolva módulos da mesma forma que o Node.js
+    "target": "ESNext",          // Certifique-se de que o código gerado seja compatível com módulos ES
+    "esModuleInterop": true,     // Permite importar módulos CommonJS como se fossem módulos ES
+    "allowSyntheticDefaultImports": true,
+    "strict": true
+  }
+}
