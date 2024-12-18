@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exemplo SSE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .cliente-quadrante {
+            padding: 10px;
+            margin: 20px 0;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .cliente-quadrante h3 {
+            margin: 0;
+            padding: 0;
+        }
+
+        .mensagens {
+            padding: 10px;
+            border: 1px solid #ccc;
+            width: 95%;
+            height: 200px;
+            background: #f9f9f9;
+            overflow-y: auto;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li.mensagem {
+            margin: 5px 0;
+            padding: 5px;
+            background: #f1f1f1;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        li.erro {
+            color: red;
+            background: #ffe6e6;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>SSE em Tempo Real</h1>
+
+    <!-- Formulário para publicar status sem recarregar a página -->
+    <div>
+        <form id="publicarForm">
+            <!-- IDs de clientes ou 'todos' -->
+            <label for="clientes">Selecione o cliente:</label>
+            <select name="clientes" id="clientes">
+                <option value="todos">Todos</option> <!-- Opção para notificar todos os clientes -->
+            </select>
+
+            <!-- Status (saudação, despedida, ping, sos) -->
+            <label for="status">Selecione o status:</label>
+            <select name="status" id="status">
+                <option value="saudacao">Saudação</option>
+                <option value="despedida">Despedida</option>
+                <option value="ping">Ping</option>
+                <option value="sos">SOS</option>
+            </select>
+
+            <button type="submit">Publicar</button>
+        </form>
+    </div>
+
+    <!-- Lista de quadrantes para clientes -->
+    <div id="clientesQuadrantes"></div>
+
+    <script>
+        const clientesSelect = document.getElementById('clientes');
+        const statusSelect = document.getElementById('status');
+        const clientesQuadrantes = document.getElementById('clientesQuadrantes');
+
+        // Função para criar ou obter um quadrante para um cliente
+        function criarQuadrante(clienteId) {
+            const quadranteExistente = document.getElementById(`quadrante-${clienteId}`);
+            if (quadranteExistente) {
+                return quadranteExistente; // Se o quadrante já existir, retorna ele
+            }
+
+            // Criar um novo quadrante para o cliente
+            const quadrante = document.createElement('div');
+            quadrante.id = `quadrante-${clienteId}`;
+            quadrante.className = 'cliente-quadrante';
+
+            const titulo = document.createElement('h3');
+            titulo.textContent = `Cliente ${clienteId}`;
+            quadrante.appendChild(titulo);
+
+            const mensagensDiv = document.createElement('div');
+            mensagensDiv.className = 'mensagens';
+            const ul = document.createElement('ul');
+            ul.id = `mensagens-${clienteId}`;
+            mensagensDiv.appendChild(ul);
+            quadrante.appendChild(mensagensDiv);
+
+            clientesQuadrantes.appendChild(quadrante);
+            return quadrante;
+        }
+
+        // Função para conectar-se ao SSE e exibir as mensagens do cliente
+        function conectarCliente(clienteId) {
+            const quadrante = criarQuadrante(clienteId);
+            const ul = document.getElementById(`mensagens-${clienteId}`);
+            const eventSource = new EventSource(`https://event-source-poc.onrender.com/stream/${clienteId}`);
+
+            // Sempre que receber um evento "message", cria um item <li> para exibir no ul
+            eventSource.onmessage = (event) => {
+                console.log(event);
+                const data = event.data;
+                const li = document.createElement('li');
+                li.textContent = `Status: ${data}`;
+                li.classList.add('mensagem');
+                ul.appendChild(li);
+
+                // Desce automaticamente para a última mensagem
+                quadrante.querySelector('.mensagens').scrollTop = quadrante.querySelector('.mensagens').scrollHeight;
+            };
+
+            // Caso haja um erro na conexão ou no recebimento dos eventos
+            eventSource.onerror = (err) => {
+                console.error(err);
+                const li = document.createElement('li');
+                li.textContent = `Erro na conexão SSE: ${err.type}`;
+                li.classList.add('erro');
+                ul.appendChild(li);
+
+                // Desce automaticamente para a última mensagem
+                quadrante.querySelector('.mensagens').scrollTop = quadrante.querySelector('.mensagens').scrollHeight;
+            };
+        }
+
+        // Função para buscar os clientes conectados e popular o select
+        async function buscarClientes() {
+            const clientes = await fetch('https://event-source-poc.onrender.com/clients').then((data) => data.json());
+            console.log(clientes); // ["1", "2", ...]
+
+            // Popula o select de clientes com os dados recebidos
+            clientes.forEach((clienteId) => {
+                const option = document.createElement('option');
+                option.value = clienteId;
+                option.textContent = `Cliente ${clienteId}`;
+                clientesSelect.appendChild(option);
+                conectarCliente(clienteId); // Conectar automaticamente aos clientes
+            });
+        }
+
+        // Inicializa a busca de clientes ao carregar a página
+        buscarClientes();
+
+        // Evento de envio do formulário para publicar o status
+        document.getElementById('publicarForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const clientId = clientesSelect.value;
+            const status = statusSelect.value;
+
+            const data = { clientId, status };
+            publicarMensagem(data);
+        });
+
+        // Função para publicar uma mensagem
+        async function publicarMensagem(data) {
+            const { clientId, status } = data;
+            if (clientId && clientId !== 'todos') {
+                // Publica para um usuário específico
+                await fetch(`https://event-source-poc.onrender.com/publish/${clientId}/status/${status}`);
+                return;
+            }
+            // Publica para todos
+            await fetch(`https://event-source-poc.onrender.com/publish/status/${status}`);
+        }
+    </script>
+</body>
+
+</html>

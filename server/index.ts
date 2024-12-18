@@ -1,5 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 const server = express();
 const clients = new Map<string, Response>();
@@ -102,6 +104,11 @@ server.get('/publish/status/:status', (req, res) => {
         // Se ocorrer um erro, retorna uma resposta de erro
         res.status(500).send('Erro inesperado: ' + (error as Error).message);
     }
+});
+
+server.get('/', (req, res) => {
+    const html = readFileSync(path.join('index.html'), 'utf8');
+    res.send(html);
 });
 
 // Inicia o servidor na porta 3000
