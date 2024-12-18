@@ -161,9 +161,6 @@
             });
         }
 
-        // Inicializa a busca de clientes ao carregar a página
-        buscarClientes();
-
         // Evento de envio do formulário para publicar o status
         document.getElementById('publicarForm').addEventListener('submit', function (e) {
             e.preventDefault();
@@ -186,6 +183,10 @@
             // Publica para todos
             await fetch(`https://event-source-poc.onrender.com/publish/status/${status}`);
         }
+        // Conectar novo cliente ao abrir a página
+        conectarCliente(String(Math.trunc(Math.random() * 100)));
+        // Inicializa a busca de clientes ao carregar a página
+        buscarClientes();
     </script>
 </body>
 
