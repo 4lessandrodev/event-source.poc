@@ -5,7 +5,7 @@ FROM node:22 AS builder
 WORKDIR /app
 
 # Copiar os arquivos de configuração e código da aplicação para dentro do container
-COPY package.json yarn.lock ./
+COPY package.json .
 
 # Instalar as dependências do projeto
 RUN yarn install
