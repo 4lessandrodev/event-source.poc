@@ -83,6 +83,7 @@
     <div id="clientesQuadrantes"></div>
 
     <script>
+        const baseURL = 'https://event-source-poc.onrender.com';
         const clientesSelect = document.getElementById('clientes');
         const statusSelect = document.getElementById('status');
         const clientesQuadrantes = document.getElementById('clientesQuadrantes');
@@ -118,7 +119,7 @@
         function conectarCliente(clienteId) {
             const quadrante = criarQuadrante(clienteId);
             const ul = document.getElementById(`mensagens-${clienteId}`);
-            const eventSource = new EventSource(`https://event-source-poc.onrender.com/stream/${clienteId}`);
+            const eventSource = new EventSource(`${baseURL}/stream/${clienteId}`);
 
             // Sempre que receber um evento "message", cria um item <li> para exibir no ul
             eventSource.onmessage = (event) => {
@@ -148,7 +149,7 @@
 
         // Função para buscar os clientes conectados e popular o select
         async function buscarClientes() {
-            const clientes = await fetch('https://event-source-poc.onrender.com/clients').then((data) => data.json());
+            const clientes = await fetch(`${baseURL}/clients`).then((data) => data.json());
             console.log(clientes); // ["1", "2", ...]
 
             // Popula o select de clientes com os dados recebidos
@@ -177,16 +178,17 @@
             const { clientId, status } = data;
             if (clientId && clientId !== 'todos') {
                 // Publica para um usuário específico
-                await fetch(`https://event-source-poc.onrender.com/publish/${clientId}/status/${status}`);
+                await fetch(`${baseURL}/publish/${clientId}/status/${status}`);
                 return;
             }
             // Publica para todos
-            await fetch(`https://event-source-poc.onrender.com/publish/status/${status}`);
+            await fetch(`${baseURL}/publish/status/${status}`);
         }
         // Conectar novo cliente ao abrir a página
         conectarCliente(String(Math.trunc(Math.random() * 100)));
-        // Inicializa a busca de clientes ao carregar a página
-        buscarClientes();
+
+        // Inicializa a busca de clientes 3s após carregar a página
+        setTimeout(() => { buscarClientes(); }, 3000);
     </script>
 </body>
 

@@ -2,6 +2,10 @@
 
 Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) simples usando **Node.js** e **Express**. O servidor permite enviar mensagens em tempo real para os clientes conectados através de uma conexão persistente, e também permite publicar mensagens para clientes específicos ou para todos os clientes conectados.
 
+---
+
+![Fluxograma](flow.png)
+
 ## Estrutura de Pastas
 
 ```
@@ -34,7 +38,13 @@ git clone https://github.com/4lessandrodev/event-source.poc.git
 cd event-source.poc
 ```
 
-### 2. Construir a Imagem Docker
+### 2. Atualize a variável
+
+No arquivo `index.html` atualize a variável `baseURL` para refletir o endereço do servidor.
+
+Caso esteja executando o projeto local atualize para `http://localhost:3000`
+
+### 3. Construir a Imagem Docker
 
 Para construir a imagem Docker com o nome `event-source-poc` e a tag `v1.0`, use o seguinte comando:
 
@@ -42,7 +52,7 @@ Para construir a imagem Docker com o nome `event-source-poc` e a tag `v1.0`, use
 docker build -t event-source-poc:v1.0 .
 ```
 
-### 3. Executar o Container Docker
+### 4. Executar o Container Docker
 
 Após construir a imagem, você pode rodar o container na porta desejada. Para mapear a porta `3000` do container para a porta `3000` na sua máquina local, use o comando:
 
@@ -52,7 +62,7 @@ docker run -p 3000:3000 event-source-poc:v1.0
 
 Isso fará com que a aplicação seja acessível em `http://localhost:3000`.
 
-### 4. Acessar a Interface Web
+### 5. Acessar a Interface Web
 
 Agora, abra o navegador e vá para `http://localhost:3000`. O servidor Express irá enviar o arquivo `index.html` que está sendo servido pelo seu servidor.
 

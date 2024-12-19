@@ -92,7 +92,7 @@ server.get('/publish/:clientId/status/:status', (req: Request, res: Response) =>
  * @param req - Requisição que contém o 'status' como parâmetro.
  * @param res - Resposta que retorna o status da operação.
  */
-server.get('/publish/status/:status', (req, res) => {
+server.get('/publish/status/:status', (req: Request, res: Response) => {
     try {
         const { status } = req.params;
 
@@ -106,7 +106,10 @@ server.get('/publish/status/:status', (req, res) => {
     }
 });
 
-server.get('/', (req, res) => {
+/**
+ * Renderiza a página html para o frontend
+ */
+server.get('/', (_: Request, res: Response) => {
     const html = readFileSync(path.join('index.html'), 'utf8');
     res.send(html);
 });
