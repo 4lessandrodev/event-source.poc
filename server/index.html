@@ -17,6 +17,9 @@
             border: 1px solid #ccc;
             background: #f9f9f9;
             border-radius: 5px;
+            max-width: 300px;
+            width: 300px;
+            min-width: 300px;
         }
 
         .cliente-quadrante h3 {
@@ -51,6 +54,17 @@
             color: red;
             background: #ffe6e6;
         }
+
+        .container {
+            display: flex;
+            justify-content: space-around;
+            align-items: stretch;
+            max-width: 100%;
+            flex-wrap: wrap;
+            border: 1px solid rgb(61, 57, 57);
+            margin-top: 0.5rem;
+            background-color: #ccc;
+        }
     </style>
 </head>
 
@@ -60,6 +74,8 @@
     <!-- Formulário para publicar status sem recarregar a página -->
     <div>
         <form id="publicarForm">
+            <button type="button" id="novoCliente">Adicionar Novo Cliente</button>
+
             <!-- IDs de clientes ou 'todos' -->
             <label for="clientes">Selecione o cliente:</label>
             <select name="clientes" id="clientes">
@@ -80,13 +96,20 @@
     </div>
 
     <!-- Lista de quadrantes para clientes -->
-    <div id="clientesQuadrantes"></div>
+    <div id="clientesQuadrantes" class="container"></div>
 
     <script>
         const baseURL = 'https://event-source-poc.onrender.com';
         const clientesSelect = document.getElementById('clientes');
         const statusSelect = document.getElementById('status');
         const clientesQuadrantes = document.getElementById('clientesQuadrantes');
+        const btnNovoCliente = document.getElementById('novoCliente');
+
+        // Função para adicionar novo cliente
+        btnNovoCliente.addEventListener('click', () => {
+            conectarCliente(String(Math.trunc(Math.random() * 100)));
+            setTimeout(() => { buscarClientes(); }, 1000);
+        });
 
         // Função para criar ou obter um quadrante para um cliente
         function criarQuadrante(clienteId) {
@@ -151,9 +174,12 @@
         async function buscarClientes() {
             const clientes = await fetch(`${baseURL}/clients`).then((data) => data.json());
             console.log(clientes); // ["1", "2", ...]
+            const uniques = new Map();
 
             // Popula o select de clientes com os dados recebidos
             clientes.forEach((clienteId) => {
+                if (uniques.has(clienteId)) return;
+                uniques.set(clienteId, clienteId);
                 const option = document.createElement('option');
                 option.value = clienteId;
                 option.textContent = `Cliente ${clienteId}`;
@@ -188,7 +214,7 @@
         conectarCliente(String(Math.trunc(Math.random() * 100)));
 
         // Inicializa a busca de clientes 3s após carregar a página
-        setTimeout(() => { buscarClientes(); }, 3000);
+        setTimeout(() => { buscarClientes(); }, 1000);
     </script>
 </body>
 
