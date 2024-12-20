@@ -1,155 +1,86 @@
-# Exemplo de Servidor SSE (Server-Sent Events)
+# Chat SSE (Server-Sent Events)
 
-Este projeto demonstra como implementar um servidor SSE (Server-Sent Events) simples usando **Node.js** e **Express**. O servidor permite enviar mensagens em tempo real para os clientes conectados através de uma conexão persistente, e também permite publicar mensagens para clientes específicos ou para todos os clientes conectados.
+Este projeto demonstra um chat em tempo real utilizando **Server-Sent Events (SSE)**. Com o SSE, os clientes podem manter uma conexão aberta com o servidor para receber atualizações assim que elas acontecem, sem a necessidade de ficar fazendo polling constante.
 
----
+## Funcionalidades
 
-![Fluxograma](flow.png)
+- **Mensagens em tempo real:** Assim que um usuário envia uma mensagem, todos os clientes conectados recebem o conteúdo imediatamente.
+- **Identificação de usuários:** Cada cliente recebe um `userId` único, armazenado no `sessionStorage`, permitindo manter a identidade do usuário entre recargas de página.
+- **Notificação de entrada/saída:** Quando um usuário entra ou sai, todos os clientes recebem uma notificação em tempo real.
+- **Contagem de usuários online:** A interface exibe quantos usuários estão atualmente conectados, atualizando a contagem sempre que um novo usuário entra ou sai.
 
-## Estrutura de Pastas
+## Tecnologias utilizadas
 
-```
-.
-└─── server/
-  │── index.ts    # Código do servidor Express que serve o arquivo HTML e configura as rotas SSE
-  └── index.html  # Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real
-```
+- **Backend:** Node.js com Express.
+- **Frontend:** HTML, CSS e JavaScript puro.
+- **SSE (Server-Sent Events):** Para comunicação em tempo real do servidor para os clientes.
+- **CORS:** Para permitir acesso cruzado entre diferentes origens.
 
-### Explicação da Estrutura de Pastas:
+## Como executar o projeto
 
-- **`server/index.ts`**: Arquivo principal do servidor Express que configura as rotas para comunicação SSE e envia o arquivo `index.html` quando a raiz do servidor é acessada.
-- **`index.html`**: Arquivo HTML que se conecta ao servidor SSE e exibe as mensagens em tempo real.
+1. **Instalação de dependências:**
+   Certifique-se de ter o Node.js instalado, então instale as dependências:
+   ```bash
+   npm install
+   ```
 
-## Tecnologias
+2. **Iniciar o servidor:**
+   ```bash
+   npm start
+   ```
+   Por padrão, o servidor rodará na porta `3000` (ou na porta definida em `process.env.PORT`).
 
-- **Node.js**
-- **Express**
-- **SSE (Server-Sent Events)**
-- **HTML e JavaScript**
+3. **Acessar o frontend:**
+   Abra o navegador e acesse:
+   ```
+   http://localhost:3000/
+   ```
 
-## Como Executar o Projeto
+## Estrutura do projeto
 
-### 1. Clonar o repositório
+- `server.ts` (ou `index.ts`): Arquivo principal do servidor Node.js, que configura rotas SSE, rota para enviar mensagens, listar usuários, etc.
+- `index.html`: Página principal que serve como frontend do chat.  
+  - Conexão SSE é estabelecida na rota `/stream/:id`.
+  - Envio de mensagens usando `fetch` para `/users/:userId/publish/messages`.
+  - Exibição de mensagens em tempo real, bem como notificação de quantos usuários estão online.
 
-Primeiro, clone o repositório para sua máquina local:
+## Endpoints
 
-```bash
-git clone https://github.com/4lessandrodev/event-source.poc.git
-cd event-source.poc
-```
+- **GET `/stream/:id`**
+  - Estabelece uma conexão SSE com o cliente identificado por `:id`.
+  - Notifica todos os usuários quando alguém entra ou sai.
 
-### 2. Atualize a variável
+- **GET `/users`**
+  - Retorna um array contendo o `userId` de todos os clientes conectados.
 
-No arquivo `index.html` atualize a variável `baseURL` para refletir o endereço do servidor.
+- **POST `/users/:userId/publish/messages`**
+  - Recebe um objeto JSON no corpo da requisição, com a propriedade `message`.
+  - Publica a mensagem para todos os usuários conectados, prefixando-a com o `userId` do remetente.
 
-Caso esteja executando o projeto local atualize para `http://localhost:3000`
+## Fluxo da aplicação
 
-### 3. Construir a Imagem Docker
+1. Ao acessar a página `index.html`, um `userId` é gerado (se ainda não existir) e armazenado em `sessionStorage`.
+2. O frontend cria uma conexão SSE com o servidor (`/stream/:userId`).
+3. Assim que a conexão é estabelecida, o servidor notifica todos sobre a entrada do usuário.
+4. O frontend atualiza a contagem de usuários online consultando `/users`.
+5. Quando o usuário envia uma mensagem, é feita uma requisição POST para `/users/:userId/publish/messages`.
+6. O servidor recebe a mensagem, a transmite para todos via SSE, e todos os clientes exibem a mensagem imediatamente.
+7. Ao fechar a página, a conexão SSE é encerrada, e o servidor notifica a saída do usuário.
 
-Para construir a imagem Docker com o nome `event-source-poc` e a tag `v1.0`, use o seguinte comando:
+## Estilização das mensagens
 
-```bash
-docker build -t event-source-poc:v1.0 .
-```
+- Mensagens do próprio usuário são exibidas em azul e em negrito, diferenciando-as das mensagens enviadas por outros usuários.
 
-### 4. Executar o Container Docker
+## Customização
 
-Após construir a imagem, você pode rodar o container na porta desejada. Para mapear a porta `3000` do container para a porta `3000` na sua máquina local, use o comando:
+- **Alterar cor ou estilo:** Edite o CSS no `index.html`.
+- **Ajustar lógica de identificação do usuário:** Edite a lógica de `userId` no script do frontend.
+- **Alterar rota base ou porta:** Ajuste a variável `PORT` no servidor ou defina `process.env.PORT`.
 
-```bash
-docker run -p 3000:3000 event-source-poc:v1.0
-```
+## Contribuindo
 
-Isso fará com que a aplicação seja acessível em `http://localhost:3000`.
-
-### 5. Acessar a Interface Web
-
-Agora, abra o navegador e vá para `http://localhost:3000`. O servidor Express irá enviar o arquivo `index.html` que está sendo servido pelo seu servidor.
-
-## Rotas do Servidor
-
-### 1. `/`
-
-- **Método**: `GET`
-- **Descrição**: Esta rota serve o arquivo `index.html` para o cliente.
-- **Exemplo**: `http://localhost:3000/`
-  
-  Quando o cliente acessar a raiz do servidor, o arquivo `index.html` será enviado e carregado na interface do usuário.
-
-### 2. `/stream/:id`
-
-- **Método**: `GET`
-- **Descrição**: Esta rota estabelece uma conexão SSE para o cliente com o `id` fornecido na URL. O servidor envia eventos em tempo real para este cliente.
-- **Exemplo**: `http://localhost:3000/stream/<client_id>`
-  
-  O cliente precisa passar um `id` exclusivo, que será usado para identificar a conexão. Esse `id` pode ser gerado no front-end utilizando a função `crypto.randomUUID()`.
-
-### 3. `/clients`
-
-- **Método**: `GET`
-- **Descrição**: Retorna uma lista de todos os `clientId` de clientes conectados.
-- **Exemplo**: `http://localhost:3000/clients`
-  
-  Essa rota permite verificar quais clientes estão conectados no servidor.
-
-### 4. `/publish/:clientId/status/:status`
-
-- **Método**: `GET`
-- **Descrição**: Envia um evento para um cliente específico, identificado pelo `clientId`, com o `status` fornecido.
-- **Exemplo**: `http://localhost:3000/publish/1234/status/active`
-
-  Esta rota permite enviar uma mensagem personalizada para um cliente específico. O `status` pode ser qualquer valor que você queira que o cliente receba (por exemplo, `active`, `inactive`, etc.).
-
-### 5. `/publish/status/:status`
-
-- **Método**: `GET`
-- **Descrição**: Envia um evento com o `status` para **todos os clientes** conectados.
-- **Exemplo**: `http://localhost:3000/publish/status/maintenance`
-
-  Com essa rota, você pode publicar uma mensagem para todos os clientes conectados simultaneamente.
-
-## Curl
-
-```bash
-# 1. Conectar um cliente para receber SSE
-curl -N http://localhost:3000/stream/1234
-
-# 2. Obter a lista de clientes conectados
-curl http://localhost:3000/clients
-
-# 3. Publicar um status para um cliente específico
-curl http://localhost:3000/publish/1234/status/active
-
-# 4. Publicar um status para todos os clientes
-curl http://localhost:3000/publish/status/maintenance
-```
-
-## Como Funciona
-
-### Servidor:
-
-- **Conexões SSE**: O servidor mantém uma conexão persistente com cada cliente conectado. Ele envia dados de forma contínua para os clientes por meio da rota `/stream/:id`.
-- **Publicação de Status**: A rota `/publish/:clientId/status/:status` permite enviar um evento específico para um cliente, enquanto a rota `/publish/status/:status` envia um evento para todos os clientes conectados.
-- **Envio de `index.html`**: A rota `/` envia o arquivo `index.html` como resposta para o cliente, que se conecta ao servidor SSE.
-
-### Front-end:
-
-- O **front-end** em `index.html` usa a API `EventSource` para se conectar ao servidor e exibir as mensagens recebidas em tempo real. As mensagens são exibidas em uma lista `<ul>`, e a rolagem automática para o final da lista é feita conforme novas mensagens são recebidas.
-
-## Exemplo de Mensagens no Front-End
-
-O front-end exibirá as mensagens recebidas na interface da seguinte maneira:
-
-```plaintext
-Status: active
-Status: maintenance
-```
-
-## Considerações
-
-- Este exemplo é adequado para um cenário de teste ou aprendizado. Para um ambiente de produção, considere adicionar **segurança**, **gerenciamento de erros** e **escalabilidade**, como Redis para gerenciar múltiplas instâncias de servidores.
-- Este projeto pode ser expandido para incluir funcionalidades como **autenticação**, **validação de dados** e **logs detalhados**.
+Contribuições são bem-vindas! Sinta-se livre para criar issues, propor melhorias e enviar pull requests.
 
 ## Licença
 
-Este projeto está licenciado sob a MIT License - consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto é fornecido sem garantias. Use, modifique e distribua conforme necessário.
