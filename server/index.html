@@ -1,221 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Exemplo SSE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <title>Chat SSE</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
 
-        .cliente-quadrante {
-            padding: 10px;
-            margin: 20px 0;
-            border: 1px solid #ccc;
-            background: #f9f9f9;
-            border-radius: 5px;
-            max-width: 300px;
-            width: 300px;
-            min-width: 300px;
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        .cliente-quadrante h3 {
-            margin: 0;
-            padding: 0;
+        h1 {
+            text-align: center;
+        }
+
+        .info-usuarios {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
         }
 
         .mensagens {
-            padding: 10px;
             border: 1px solid #ccc;
-            width: 95%;
-            height: 200px;
+            border-radius: 5px;
             background: #f9f9f9;
+            height: 300px;
             overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 20px;
         }
 
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        li.mensagem {
+        .mensagem {
             margin: 5px 0;
             padding: 5px;
-            background: #f1f1f1;
-            border: 1px solid #ccc;
+            background: #e1e1e1;
             border-radius: 3px;
         }
 
-        li.erro {
+        .erro {
             color: red;
             background: #ffe6e6;
         }
 
-        .container {
+        .minha-mensagem {
+            color: blue;
+            font-weight: bold;
             display: flex;
-            justify-content: space-around;
-            align-items: stretch;
-            max-width: 100%;
-            flex-wrap: wrap;
-            border: 1px solid rgb(61, 57, 57);
-            margin-top: 0.5rem;
-            background-color: #ccc;
+            justify-content: end;
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 5px;
+        }
+
+        button {
+            padding: 5px 10px;
         }
     </style>
 </head>
-
 <body>
-    <h1>SSE em Tempo Real</h1>
-
-    <!-- Formulário para publicar status sem recarregar a página -->
-    <div>
-        <form id="publicarForm">
-            <button type="button" id="novoCliente">Adicionar Novo Cliente</button>
-
-            <!-- IDs de clientes ou 'todos' -->
-            <label for="clientes">Selecione o cliente:</label>
-            <select name="clientes" id="clientes">
-                <option value="todos">Todos</option> <!-- Opção para notificar todos os clientes -->
-            </select>
-
-            <!-- Status (saudação, despedida, ping, sos) -->
-            <label for="status">Selecione o status:</label>
-            <select name="status" id="status">
-                <option value="saudacao">Saudação</option>
-                <option value="despedida">Despedida</option>
-                <option value="ping">Ping</option>
-                <option value="sos">SOS</option>
-            </select>
-
-            <button type="submit">Publicar</button>
+    <div class="chat-container">
+        <h1>Chat SSE</h1>
+        <div class="info-usuarios" id="infoUsuarios">Carregando usuários online...</div>
+        <div class="mensagens" id="mensagens"></div>
+        <form id="formEnviar">
+            <input type="text" id="textoMensagem" placeholder="Digite sua mensagem..."/>
+            <button type="submit">Enviar</button>
         </form>
     </div>
-
-    <!-- Lista de quadrantes para clientes -->
-    <div id="clientesQuadrantes" class="container"></div>
-
     <script>
-        const baseURL = 'https://event-source-poc.onrender.com';
-        const clientesSelect = document.getElementById('clientes');
-        const statusSelect = document.getElementById('status');
-        const clientesQuadrantes = document.getElementById('clientesQuadrantes');
-        const btnNovoCliente = document.getElementById('novoCliente');
+        const baseURL = 'https://event-source-poc.onrender.com/'; // Ajuste conforme necessário
+        const mensagensDiv = document.getElementById('mensagens');
+        const formEnviar = document.getElementById('formEnviar');
+        const textoMensagem = document.getElementById('textoMensagem');
+        const infoUsuarios = document.getElementById('infoUsuarios');
 
-        // Função para adicionar novo cliente
-        btnNovoCliente.addEventListener('click', () => {
-            conectarCliente(String(Math.trunc(Math.random() * 100)));
-            setTimeout(() => { buscarClientes(); }, 1000);
-        });
+        // Obtém ou gera um ID aleatório para identificar o usuário atual
+        // e salva no sessionStorage para persistência entre reloads.
+        let userId = sessionStorage.getItem('userId');
+        if (!userId) {
+            userId = String(Math.trunc(Math.random() * 1000000));
+            sessionStorage.setItem('userId', userId);
+        }
 
-        // Função para criar ou obter um quadrante para um cliente
-        function criarQuadrante(clienteId) {
-            const quadranteExistente = document.getElementById(`quadrante-${clienteId}`);
-            if (quadranteExistente) {
-                return quadranteExistente; // Se o quadrante já existir, retorna ele
+        // Conecta ao SSE usando o userId gerado
+        const eventSource = new EventSource(`${baseURL}/stream/${userId}`);
+
+        /**
+         * Atualiza a contagem de usuários online consultando a rota /users.
+         */
+        async function atualizarContagemUsuarios() {
+            const response = await fetch(`${baseURL}/users`);
+            const usuarios = await response.json(); 
+            infoUsuarios.textContent = `Usuários online: ${usuarios.length}`;
+        }
+
+        eventSource.onopen = async () => {
+            // Assim que a conexão SSE abrir, busca quantos usuários estão online
+            await atualizarContagemUsuarios();
+        };
+
+        /**
+         * Callback de recebimento de mensagens SSE.
+         * A mensagem esperada tem o formato:
+         *   "userId diz: Mensagem (HH:MM:SS)"
+         *   ou
+         *   "usuário xx entrou. (HH:MM:SS)"
+         *   "usuário xx saiu. (HH:MM:SS)"
+         */
+        eventSource.onmessage = async (event) => {
+            const data = event.data;
+            const divMsg = document.createElement('div');
+            divMsg.textContent = data;
+            divMsg.classList.add('mensagem');
+
+            // Verifica se a mensagem é de entrada ou saída de usuário
+            if (data.includes('entrou') || data.includes('saiu')) {
+                // Atualiza a contagem de usuários conectados
+                await atualizarContagemUsuarios();
             }
 
-            // Criar um novo quadrante para o cliente
-            const quadrante = document.createElement('div');
-            quadrante.id = `quadrante-${clienteId}`;
-            quadrante.className = 'cliente-quadrante';
+            // Se for uma mensagem do tipo "userId diz:"
+            const partes = data.split(' diz:');
+            if (partes.length > 1) {
+                const remetenteId = partes[0].trim();
+                if (remetenteId === userId) {
+                    divMsg.classList.add('minha-mensagem');
+                }
+            }
 
-            const titulo = document.createElement('h3');
-            titulo.textContent = `Cliente ${clienteId}`;
-            quadrante.appendChild(titulo);
+            mensagensDiv.appendChild(divMsg);
 
-            const mensagensDiv = document.createElement('div');
-            mensagensDiv.className = 'mensagens';
-            const ul = document.createElement('ul');
-            ul.id = `mensagens-${clienteId}`;
-            mensagensDiv.appendChild(ul);
-            quadrante.appendChild(mensagensDiv);
+            // Rola para a última mensagem
+            mensagensDiv.scrollTop = mensagensDiv.scrollHeight;
+        };
 
-            clientesQuadrantes.appendChild(quadrante);
-            return quadrante;
-        }
+        /**
+         * Callback de erro do SSE.
+         */
+        eventSource.onerror = (err) => {
+            console.error(err);
+            const divMsg = document.createElement('div');
+            divMsg.textContent = `Erro na conexão SSE: ${err.type}`;
+            divMsg.classList.add('erro');
+            mensagensDiv.appendChild(divMsg);
+        };
 
-        // Função para conectar-se ao SSE e exibir as mensagens do cliente
-        function conectarCliente(clienteId) {
-            const quadrante = criarQuadrante(clienteId);
-            const ul = document.getElementById(`mensagens-${clienteId}`);
-            const eventSource = new EventSource(`${baseURL}/stream/${clienteId}`);
-
-            // Sempre que receber um evento "message", cria um item <li> para exibir no ul
-            eventSource.onmessage = (event) => {
-                console.log(event);
-                const data = event.data;
-                const li = document.createElement('li');
-                li.textContent = `Status: ${data}`;
-                li.classList.add('mensagem');
-                ul.appendChild(li);
-
-                // Desce automaticamente para a última mensagem
-                quadrante.querySelector('.mensagens').scrollTop = quadrante.querySelector('.mensagens').scrollHeight;
-            };
-
-            // Caso haja um erro na conexão ou no recebimento dos eventos
-            eventSource.onerror = (err) => {
-                console.error(err);
-                const li = document.createElement('li');
-                li.textContent = `Erro na conexão SSE: ${err.type}`;
-                li.classList.add('erro');
-                ul.appendChild(li);
-
-                // Desce automaticamente para a última mensagem
-                quadrante.querySelector('.mensagens').scrollTop = quadrante.querySelector('.mensagens').scrollHeight;
-            };
-        }
-
-        // Função para buscar os clientes conectados e popular o select
-        async function buscarClientes() {
-            const clientes = await fetch(`${baseURL}/clients`).then((data) => data.json());
-            console.log(clientes); // ["1", "2", ...]
-            const uniques = new Map();
-
-            // Popula o select de clientes com os dados recebidos
-            clientes.forEach((clienteId) => {
-                if (uniques.has(clienteId)) return;
-                uniques.set(clienteId, clienteId);
-                const option = document.createElement('option');
-                option.value = clienteId;
-                option.textContent = `Cliente ${clienteId}`;
-                clientesSelect.appendChild(option);
-                conectarCliente(clienteId); // Conectar automaticamente aos clientes
+        /**
+         * Função para enviar uma mensagem para todos os usuários conectados.
+         * Usa uma requisição POST, enviando o userId e a mensagem no body.
+         */
+        async function enviarMensagem(message) {
+            await fetch(`${baseURL}/users/${encodeURIComponent(userId)}/publish/messages`, {
+                body: JSON.stringify({ message }),
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        // Evento de envio do formulário para publicar o status
-        document.getElementById('publicarForm').addEventListener('submit', function (e) {
+        /**
+         * Lida com o evento de envio do formulário.
+         */
+        formEnviar.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            const clientId = clientesSelect.value;
-            const status = statusSelect.value;
-
-            const data = { clientId, status };
-            publicarMensagem(data);
+            const msg = textoMensagem.value.trim();
+            if (!msg) return;
+            await enviarMensagem(msg);
+            textoMensagem.value = '';
+            textoMensagem.focus();
         });
-
-        // Função para publicar uma mensagem
-        async function publicarMensagem(data) {
-            const { clientId, status } = data;
-            if (clientId && clientId !== 'todos') {
-                // Publica para um usuário específico
-                await fetch(`${baseURL}/publish/${clientId}/status/${status}`);
-                return;
-            }
-            // Publica para todos
-            await fetch(`${baseURL}/publish/status/${status}`);
-        }
-        // Conectar novo cliente ao abrir a página
-        conectarCliente(String(Math.trunc(Math.random() * 100)));
-
-        // Inicializa a busca de clientes 3s após carregar a página
-        setTimeout(() => { buscarClientes(); }, 1000);
     </script>
 </body>
-
 </html>
